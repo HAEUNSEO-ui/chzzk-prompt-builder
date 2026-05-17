@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CHZZK Isometric Prompt Builder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;1,9..144,300&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #ffffff;
+    --bg-secondary: #f5f4f2;
+    --bg-tertiary: #eeede9;
+    --text-primary: #1a1a18;
+    --text-secondary: #6b6a66;
+    --border: rgba(0,0,0,0.1);
+    --border-hover: rgba(0,0,0,0.2);
+    --accent: #1a9662;
+    --accent-light: #e6f7f2;
+    --accent-mid: #1a9662;
+    --accent-text: #0d4d32;
+    --font-mono: 'DM Mono', monospace;
+    --font-serif: 'Fraunces', serif;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1c1a;
+      --bg-secondary: #252523;
+      --bg-tertiary: #2e2e2b;
+      --text-primary: #f0efe9;
+      --text-secondary: #8a8980;
+      --border: rgba(255,255,255,0.1);
+      --border-hover: rgba(255,255,255,0.2);
+      --accent-light: #0d4d32;
+      --accent-text: #a3dece;
+    }
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text-primary);
+    font-family: var(--font-mono);
+  }
+
+  body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  .page {
+    width: 100%;
+    max-width: 680px;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem 1.25rem 1rem;
+  }
+
+  .header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding-bottom: 1rem;
+    border-bottom: 0.5px solid var(--border);
+    margin-bottom: 1rem;
+    flex-shrink: 0;
+  }
+
+  .header svg {
+    color: var(--text-primary);
+    flex-shrink: 0;
+  }
+
+  .header-icon {
+    width: 34px; height: 34px;
+    background: var(--accent-light);
+    border-radius: var(--radius-md);
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .header-icon i { font-size: 17px; color: var(--accent); }
+
+  .header h1 {
+    font-family: var(--font-serif);
+    font-size: 16px;
+    font-weight: 300;
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
+  }
+
+  .header-meta {
+    margin-left: auto;
+    font-size: 11px;
+    color: var(--text-secondary);
+  }
+
+  .progress-bar {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 1rem;
+    flex-shrink: 0;
+  }
+
+  .progress-dot {
+    height: 3px;
+    flex: 1;
+    background: var(--border);
+    border-radius: 2px;
+    transition: background 0.4s;
+  }
+  .progress-dot.done { background: var(--accent); }
+  .progress-dot.current { background: var(--accent-mid); }
+
+  .chat-area {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-right: 4px;
+    scroll-behavior: smooth;
+  }
+
+  .chat-area::-webkit-scrollbar { width: 4px; }
+  .chat-area::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .msg {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    animation: fadeUp 0.3s ease both;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .msg.bot { align-items: flex-start; }
+  .msg.user { align-items: flex-end; }
+
+  .msg-label {
+    font-size: 11px;
+    color: var(--text-secondary);
+    padding: 0 4px;
+  }
+
+  .bubble {
+    max-width: 85%;
+    padding: 10px 14px;
+    font-size: 13px;
+    line-height: 1.65;
+  }
+
+  .bot .bubble {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 0.5px solid var(--border);
+    border-radius: 4px 16px 16px 16px;
+  }
+
+  .bot .bubble strong { color: var(--accent); font-weight: 500; }
+  .bot .bubble .sub { font-size: 12px; color: var(--text-secondary); display: block; margin-top: 3px; }
+
+  .user .bubble {
+    background: var(--accent-light);
+    color: var(--accent-text);
+    border-radius: 16px 4px 16px 16px;
+    font-weight: 500;
+  }
+
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+    max-width: 90%;
+  }
+
+  .chip {
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-family: var(--font-mono);
+    border: 0.5px solid var(--border-hover);
+    background: var(--bg);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .chip:hover {
+    background: var(--accent-light);
+    border-color: var(--accent-mid);
+    color: var(--accent-text);
+  }
+
+  .chip.selected {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+  }
+
+  .input-row {
+    display: flex;
+    gap: 8px;
+    padding-top: 1rem;
+    border-top: 0.5px solid var(--border);
+    margin-top: 0.5rem;
+    flex-shrink: 0;
+  }
+
+  .text-input {
+    flex: 1;
+    padding: 10px 14px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    border: 0.5px solid var(--border-hover);
+    border-radius: var(--radius-md);
+    background: var(--bg);
+    color: var(--text-primary);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .text-input:focus { border-color: var(--accent-mid); }
+  .text-input::placeholder { color: var(--text-secondary); }
+
+  .send-btn {
+    padding: 10px 16px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: var(--radius-md);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex; align-items: center; gap: 6px;
+  }
+
+  .send-btn:hover { background: #157a4e; }
+  .send-btn:active { transform: scale(0.97); }
+  .send-btn:disabled { background: var(--border); cursor: default; }
+
+  .result-box {
+    background: var(--bg-secondary);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 14px 16px 14px 16px;
+    font-size: 12px;
+    line-height: 1.9;
+    color: var(--text-primary);
+    font-family: var(--font-mono);
+    margin-top: 4px;
+    position: relative;
+    white-space: pre-wrap;
+    word-break: break-word;
+    padding-top: 36px;
+  }
+
+  .result-label {
+    position: absolute;
+    top: 12px; left: 16px;
+    font-size: 10px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .highlight { color: var(--accent); font-weight: 500; }
+
+  .copy-btn {
+    position: absolute;
+    top: 8px; right: 10px;
+    padding: 5px 10px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    background: var(--bg);
+    border: 0.5px solid var(--border-hover);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: all 0.15s;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .copy-btn:hover { color: var(--text-primary); border-color: var(--accent-mid); }
+
+  .restart-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 10px;
+    padding: 8px 14px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    background: transparent;
+    border: 0.5px solid var(--border-hover);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: all 0.15s;
+  }
+  .restart-btn:hover { color: var(--text-primary); border-color: var(--border-hover); }
+
+  @media (max-width: 480px) {
+    .page { padding: 1rem 1rem 0.75rem; }
+    .bubble { max-width: 92%; font-size: 13px; }
+    .chips { max-width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+  <header class="header">
+    <div class="header-icon" style="background:#000;padding:0;overflow:hidden;"><img src="data:image/webp;base64,UklGRl4EAABXRUJQVlA4TFIEAAAv78A7AJfmoJEkQZma/Qf8O+ZvQUMgaNs2cX/+kP/5V+S2bYOcZst8Iw0hhD4zn8v3vu5jLt/MdeA1KDAyhE65BhLKfRSUa0ITSgF8PQShQUcwoHQwBOk0QQogMwUITWgwg5kSRIIAEob1wco6UiA4njMnAEQMjvl4jubLfq77g9u+0OAHIh0JZYuWZx/wGJ65LVrOFRlQlG3btO3MZ1vhi58Z27Zt27Zt28az7YsxsW8+a2adseIT0f8JkLb/2/7/39I3vfBc8leOIu8czx7zhPvdtylyq40n73NDcr9AuL/fkdxfFu4PcSTXFf3IW6nZcIBw/6Ujedwh3F8eSG6fCPdTOzWZrhtF3jxD8jhNuH/SkdyfFO7PMiS3+cL9uPWabifyPnYk7zlXuL+7QXJ/Q7jf15FcV/Qnb41mw6HC/duO5HGvcH9eILl9LdxP3abJdGNf8n42ZO/a0pHcHubi0UDpbYFQeZKj9LptTyrGrtfi+bVC5QeO0vvbQuUtgdLr8gFUTDMU344UKpdp8Zo7hMrXHaW3n4XKsx2l1629qZjSocXzk4XKbw2lj+eFygccpbdfhMoTDKXXrrlU9F6hxYsbhcrPHaX394TKKxqUXjcKlds5iu+Hc7Fcixf3CZXPO0pvPwiVZxpKr9v2omLiZi2enyVUfukofbwqVN4ZKL0tECoPDJReu+ZS0WeVFs/vECrfdZTePhQqL+tB6XXzICp2Qfn9OKFysRUvHhUqn3aU3hYLlacYSq9bdqZix61avLhIqPzIUXp/R6h8rMez57NFA6kYfOPtt+S++cF8erBw/7Jl87uE++sMye1r4X6PDk2mKuT/ZEjeHEves4Hk8aRwf0Iguf0m3E/YoMm0YwZ53ziS+9XC/Y0NkvuHwv0cQ3Jd0Yu8VZrNDhbu33Ak9/uF+0scye1b4X5KhyZTHUne94bkcaJw/0QgeTwr3B/hSG5LhfyNmky7Z5H3nSF53CjcXxNI7h8I9/t3aTJdOZS8hYbkdrxw/4wjeTws3F/qSG6/CvcTN2syxWjyvjIkb04X7h9okDxeFe4PCiS3xUL+Rk2m2I+89x3J/Vbh/upAcv9QuJ/Zrcl00xDy5hmSNycL988Fkscjwv0ZgeQ2T7jffpMm067p5H3hSB4XCvf3NEjubwn3sx3Jbckw8tZrNhwq3L/nSO4PCfcXO5Lb58L9nE5NplvGkPejIbmfLtw/7kgeTwn3pzqS23LhfvhaTaYdk8j7xpHcbxDur2+Q3ps/5u/XkDDZ0SrjchJWa2W97Kirqxx1tdsWraxvDXX1WKCujg7U1Yg1WlmfOurqmgZ1NVlRWctq60VHXZ3lqKtdt2llfWWoq0cCdXWYobJWaGV95qir8xvU1T5o2S1rnlXWE466OtdRVzus08r6xFFXtwXqam9HZa3WynrTUVcXNairSR1aWfPDWn3Pla3lmDdeavmvHdVa2v5v+7/t/78CAQ==" alt="CHZZK" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:8px;" /></div>
+    <svg viewBox="0 0 207 11" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="CHZZK Isometric Prompt Builder" style="height:13px;width:auto;flex-shrink:0;"><path d="M198.931 9.95999C198.795 9.95999 198.727 9.88799 198.727 9.74399V0.407986C198.727 0.263986 198.795 0.191986 198.931 0.191986H202.195C203.611 0.191986 204.647 0.491986 205.303 1.09199C205.967 1.68399 206.299 2.55599 206.299 3.70799C206.299 4.33999 206.187 4.89999 205.963 5.38799C205.747 5.86799 205.411 6.25999 204.955 6.56399L206.575 9.70799C206.599 9.73999 206.611 9.77599 206.611 9.81599C206.611 9.91199 206.547 9.95999 206.419 9.95999H204.139C204.011 9.95999 203.931 9.90799 203.899 9.80399L202.663 7.19999C202.591 7.20799 202.515 7.21599 202.435 7.22399C202.355 7.22399 202.275 7.22399 202.195 7.22399H201.175V9.74399C201.175 9.88799 201.103 9.95999 200.959 9.95999H198.931ZM202.159 5.14799C202.671 5.14799 203.067 5.03599 203.347 4.81199C203.627 4.58799 203.767 4.21999 203.767 3.70799C203.767 3.18799 203.627 2.81999 203.347 2.60399C203.067 2.37999 202.671 2.26799 202.159 2.26799H201.175V5.14799H202.159Z" fill="currentColor"/><path d="M190.493 9.95999C190.357 9.95999 190.289 9.88799 190.289 9.74399V0.407986C190.289 0.263986 190.357 0.191986 190.493 0.191986H196.925C197.069 0.191986 197.141 0.263986 197.141 0.407986V2.12399C197.141 2.26799 197.069 2.33999 196.925 2.33999H192.749V3.93599H196.433C196.577 3.93599 196.649 4.00399 196.649 4.13999V5.79599C196.649 5.93999 196.577 6.01199 196.433 6.01199H192.749V7.81199H197.081C197.225 7.81199 197.297 7.88399 197.297 8.02799V9.74399C197.297 9.88799 197.225 9.95999 197.081 9.95999H190.493Z" fill="currentColor"/><path d="M180.099 9.95999C179.963 9.95999 179.895 9.88799 179.895 9.74399V0.407986C179.895 0.263986 179.963 0.191986 180.099 0.191986H183.711C185.287 0.191986 186.507 0.611986 187.371 1.45199C188.235 2.28399 188.667 3.49199 188.667 5.07599C188.667 6.64399 188.235 7.85199 187.371 8.69999C186.507 9.53999 185.287 9.95999 183.711 9.95999H180.099ZM183.471 7.66799C184.335 7.66799 184.995 7.45599 185.451 7.03199C185.907 6.59999 186.135 5.94799 186.135 5.07599C186.135 4.20399 185.907 3.55599 185.451 3.13199C184.995 2.69999 184.335 2.48399 183.471 2.48399H182.343V7.66799H183.471Z" fill="currentColor"/><path d="M171.802 9.95999C171.666 9.95999 171.598 9.88799 171.598 9.74399V0.407986C171.598 0.263986 171.666 0.191986 171.802 0.191986H173.866C174.01 0.191986 174.082 0.263986 174.082 0.407986V7.60799H178.366C178.502 7.60799 178.57 7.67199 178.57 7.79999V9.74399C178.57 9.88799 178.502 9.95999 178.366 9.95999H171.802Z" fill="currentColor"/><path d="M167.419 9.95999C167.283 9.95999 167.215 9.88799 167.215 9.74399V0.407986C167.215 0.263986 167.283 0.191986 167.419 0.191986H169.483C169.627 0.191986 169.699 0.263986 169.699 0.407986V9.74399C169.699 9.88799 169.627 9.95999 169.483 9.95999H167.419Z" fill="currentColor"/><path d="M161.16 10.152C160.648 10.152 160.14 10.08 159.636 9.93599C159.14 9.79199 158.688 9.55999 158.28 9.23999C157.872 8.91199 157.544 8.47999 157.296 7.94399C157.056 7.40799 156.936 6.75199 156.936 5.97599V0.407986C156.936 0.263986 157.004 0.191986 157.14 0.191986H159.216C159.352 0.191986 159.42 0.263986 159.42 0.407986V5.48399C159.42 6.25999 159.58 6.83199 159.9 7.19999C160.22 7.55999 160.64 7.73999 161.16 7.73999C161.664 7.73999 162.076 7.55999 162.396 7.19999C162.724 6.83199 162.888 6.25999 162.888 5.48399V0.407986C162.888 0.263986 162.96 0.191986 163.104 0.191986H165.168C165.304 0.191986 165.372 0.263986 165.372 0.407986V5.97599C165.372 6.75199 165.248 7.40799 165 7.94399C164.76 8.47999 164.436 8.91199 164.028 9.23999C163.62 9.55999 163.168 9.79199 162.672 9.93599C162.176 10.08 161.672 10.152 161.16 10.152Z" fill="currentColor"/><path d="M147.895 9.95999C147.759 9.95999 147.691 9.88799 147.691 9.74399V0.407986C147.691 0.263986 147.759 0.191986 147.895 0.191986H151.507C152.339 0.191986 153.007 0.311986 153.511 0.551986C154.015 0.783986 154.383 1.11199 154.615 1.53599C154.847 1.95199 154.963 2.43599 154.963 2.98799C154.963 3.39599 154.847 3.75999 154.615 4.07999C154.391 4.39999 154.051 4.64399 153.595 4.81199C154.219 4.98799 154.683 5.27999 154.987 5.68799C155.299 6.08799 155.455 6.55999 155.455 7.10399C155.455 8.00799 155.143 8.71199 154.519 9.21599C153.895 9.71199 152.879 9.95999 151.471 9.95999H147.895ZM151.435 4.07999C151.763 4.07999 152.031 4.00399 152.239 3.85199C152.447 3.69199 152.551 3.45199 152.551 3.13199C152.551 2.81199 152.447 2.57599 152.239 2.42399C152.031 2.26399 151.763 2.18399 151.435 2.18399H150.091V4.07999H151.435ZM151.615 7.96799C152.015 7.96799 152.331 7.87999 152.563 7.70399C152.803 7.52799 152.923 7.26799 152.923 6.92399C152.923 6.57199 152.803 6.31599 152.563 6.15599C152.331 5.98799 152.015 5.90399 151.615 5.90399H150.091V7.96799H151.615Z" fill="currentColor"/><path d="M136.937 9.95999C136.801 9.95999 136.733 9.88799 136.733 9.74399V2.51999H133.925C133.789 2.51999 133.721 2.45199 133.721 2.31599V0.407986C133.721 0.263986 133.789 0.191986 133.925 0.191986H142.013C142.157 0.191986 142.229 0.263986 142.229 0.407986V2.31599C142.229 2.45199 142.157 2.51999 142.013 2.51999H139.217V9.74399C139.217 9.88799 139.145 9.95999 139.001 9.95999H136.937Z" fill="currentColor"/><path d="M125.583 9.95999C125.447 9.95999 125.379 9.88799 125.379 9.74399V0.407986C125.379 0.263986 125.447 0.191986 125.583 0.191986H128.847C130.199 0.191986 131.219 0.495986 131.907 1.10399C132.603 1.70399 132.951 2.59199 132.951 3.76799C132.951 4.93599 132.603 5.82799 131.907 6.44399C131.219 7.05199 130.199 7.35599 128.847 7.35599H127.827V9.74399C127.827 9.88799 127.755 9.95999 127.611 9.95999H125.583ZM128.787 5.27999C129.291 5.27999 129.687 5.16399 129.975 4.93199C130.271 4.69999 130.419 4.30399 130.419 3.74399C130.419 3.20799 130.271 2.82799 129.975 2.60399C129.687 2.37999 129.291 2.26799 128.787 2.26799H127.827V5.27999H128.787Z" fill="currentColor"/><path d="M112.716 9.95999C112.58 9.95999 112.512 9.88799 112.512 9.74399V0.407986C112.512 0.263986 112.58 0.191986 112.716 0.191986H114.876C114.996 0.191986 115.076 0.239986 115.116 0.335986L118.056 5.23199L120.924 0.335986C120.972 0.239986 121.052 0.191986 121.164 0.191986H123.276C123.42 0.191986 123.492 0.263986 123.492 0.407986V9.74399C123.492 9.88799 123.42 9.95999 123.276 9.95999H121.32C121.176 9.95999 121.104 9.88799 121.104 9.74399V4.19999L118.86 7.95599C118.804 8.05199 118.724 8.09999 118.62 8.09999H117.384C117.272 8.09999 117.192 8.05199 117.144 7.95599L114.888 4.29599V9.74399C114.888 9.88799 114.82 9.95999 114.684 9.95999H112.716Z" fill="currentColor"/><path d="M105.838 10.152C105.11 10.152 104.438 10.028 103.822 9.78C103.214 9.54 102.682 9.196 102.226 8.748C101.77 8.3 101.414 7.764 101.158 7.14C100.91 6.516 100.786 5.828 100.786 5.076C100.786 4.316 100.91 3.628 101.158 3.012C101.414 2.388 101.77 1.852 102.226 1.404C102.682 0.956 103.214 0.612 103.822 0.372C104.438 0.124 105.11 0 105.838 0C106.566 0 107.234 0.124 107.842 0.372C108.458 0.612 108.99 0.956 109.438 1.404C109.894 1.852 110.246 2.388 110.494 3.012C110.75 3.628 110.878 4.316 110.878 5.076C110.878 5.828 110.75 6.516 110.494 7.14C110.246 7.764 109.894 8.3 109.438 8.748C108.99 9.196 108.458 9.54 107.842 9.78C107.234 10.028 106.566 10.152 105.838 10.152ZM103.354 5.076C103.354 5.596 103.458 6.06 103.666 6.468C103.874 6.868 104.166 7.18 104.542 7.404C104.918 7.628 105.35 7.74 105.838 7.74C106.334 7.74 106.766 7.628 107.134 7.404C107.502 7.18 107.79 6.868 107.998 6.468C108.206 6.06 108.31 5.596 108.31 5.076C108.31 4.548 108.206 4.084 107.998 3.684C107.79 3.284 107.502 2.972 107.134 2.748C106.766 2.524 106.334 2.412 105.838 2.412C105.35 2.412 104.918 2.524 104.542 2.748C104.166 2.972 103.874 3.284 103.666 3.684C103.458 4.084 103.354 4.548 103.354 5.076Z" fill="currentColor"/><path d="M92.1259 9.95999C91.9899 9.95999 91.9219 9.88799 91.9219 9.74399V0.407986C91.9219 0.263986 91.9899 0.191986 92.1259 0.191986H95.3899C96.8059 0.191986 97.8419 0.491986 98.4979 1.09199C99.1619 1.68399 99.4939 2.55599 99.4939 3.70799C99.4939 4.33999 99.3819 4.89999 99.1579 5.38799C98.9419 5.86799 98.6059 6.25999 98.1499 6.56399L99.7699 9.70799C99.7939 9.73999 99.8059 9.77599 99.8059 9.81599C99.8059 9.91199 99.7419 9.95999 99.6139 9.95999H97.3339C97.2059 9.95999 97.1259 9.90799 97.0939 9.80399L95.8579 7.19999C95.7859 7.20799 95.7099 7.21599 95.6299 7.22399C95.5499 7.22399 95.4699 7.22399 95.3899 7.22399H94.3699V9.74399C94.3699 9.88799 94.2979 9.95999 94.1539 9.95999H92.1259ZM95.3539 5.14799C95.8659 5.14799 96.2619 5.03599 96.5419 4.81199C96.8219 4.58799 96.9619 4.21999 96.9619 3.70799C96.9619 3.18799 96.8219 2.81999 96.5419 2.60399C96.2619 2.37999 95.8659 2.26799 95.3539 2.26799H94.3699V5.14799H95.3539Z" fill="currentColor"/><path d="M83.079 9.95999C82.943 9.95999 82.875 9.88799 82.875 9.74399V0.407986C82.875 0.263986 82.943 0.191986 83.079 0.191986H86.343C87.695 0.191986 88.715 0.495986 89.403 1.10399C90.099 1.70399 90.447 2.59199 90.447 3.76799C90.447 4.93599 90.099 5.82799 89.403 6.44399C88.715 7.05199 87.695 7.35599 86.343 7.35599H85.323V9.74399C85.323 9.88799 85.251 9.95999 85.107 9.95999H83.079ZM86.283 5.27999C86.787 5.27999 87.183 5.16399 87.471 4.93199C87.767 4.69999 87.915 4.30399 87.915 3.74399C87.915 3.20799 87.767 2.82799 87.471 2.60399C87.183 2.37999 86.787 2.26799 86.283 2.26799H85.323V5.27999H86.283Z" fill="currentColor"/><path d="M72.6364 10.152C71.6524 10.152 70.7884 9.94 70.0444 9.516C69.3004 9.092 68.7204 8.5 68.3044 7.74C67.8964 6.972 67.6924 6.084 67.6924 5.076C67.6924 4.316 67.8164 3.628 68.0644 3.012C68.3124 2.388 68.6604 1.852 69.1084 1.404C69.5564 0.956 70.0804 0.612 70.6804 0.372C71.2884 0.124 71.9444 0 72.6484 0C73.7124 0 74.6084 0.24 75.3364 0.72C76.0644 1.192 76.6004 1.864 76.9444 2.736C76.9604 2.784 76.9684 2.816 76.9684 2.832C76.9684 2.928 76.9164 2.984 76.8124 3L74.7724 3.54C74.7404 3.556 74.7164 3.564 74.7004 3.564C74.6284 3.564 74.5644 3.524 74.5084 3.444C74.1084 2.756 73.4884 2.412 72.6484 2.412C72.1764 2.412 71.7604 2.524 71.4004 2.748C71.0404 2.964 70.7604 3.272 70.5604 3.672C70.3604 4.064 70.2604 4.532 70.2604 5.076C70.2604 5.62 70.3604 6.092 70.5604 6.492C70.7604 6.892 71.0404 7.2 71.4004 7.416C71.7604 7.632 72.1764 7.74 72.6484 7.74C73.1364 7.74 73.5644 7.632 73.9324 7.416C74.3004 7.2 74.5724 6.844 74.7484 6.348C74.8044 6.22 74.8884 6.172 75.0004 6.204L77.0284 6.744C77.1564 6.776 77.2084 6.848 77.1844 6.96C76.9924 7.584 76.6884 8.136 76.2724 8.616C75.8564 9.096 75.3404 9.472 74.7244 9.744C74.1164 10.016 73.4204 10.152 72.6364 10.152Z" fill="currentColor"/><path d="M63.8017 9.95999C63.6657 9.95999 63.5977 9.88799 63.5977 9.74399V0.407986C63.5977 0.263986 63.6657 0.191986 63.8017 0.191986H65.8657C66.0097 0.191986 66.0817 0.263986 66.0817 0.407986V9.74399C66.0817 9.88799 66.0097 9.95999 65.8657 9.95999H63.8017Z" fill="currentColor"/><path d="M54.6024 9.95999C54.4664 9.95999 54.3984 9.88799 54.3984 9.74399V0.407986C54.3984 0.263986 54.4664 0.191986 54.6024 0.191986H57.8664C59.2824 0.191986 60.3184 0.491986 60.9744 1.09199C61.6384 1.68399 61.9704 2.55599 61.9704 3.70799C61.9704 4.33999 61.8584 4.89999 61.6344 5.38799C61.4184 5.86799 61.0824 6.25999 60.6264 6.56399L62.2464 9.70799C62.2704 9.73999 62.2824 9.77599 62.2824 9.81599C62.2824 9.91199 62.2184 9.95999 62.0904 9.95999H59.8104C59.6824 9.95999 59.6024 9.90799 59.5704 9.80399L58.3344 7.19999C58.2624 7.20799 58.1864 7.21599 58.1064 7.22399C58.0264 7.22399 57.9464 7.22399 57.8664 7.22399H56.8464V9.74399C56.8464 9.88799 56.7744 9.95999 56.6304 9.95999H54.6024ZM57.8304 5.14799C58.3424 5.14799 58.7384 5.03599 59.0184 4.81199C59.2984 4.58799 59.4384 4.21999 59.4384 3.70799C59.4384 3.18799 59.2984 2.81999 59.0184 2.60399C58.7384 2.37999 58.3424 2.26799 57.8304 2.26799H56.8464V5.14799H57.8304Z" fill="currentColor"/><path d="M47.7807 9.95999C47.6447 9.95999 47.5767 9.88799 47.5767 9.74399V2.51999H44.7687C44.6327 2.51999 44.5647 2.45199 44.5647 2.31599V0.407986C44.5647 0.263986 44.6327 0.191986 44.7687 0.191986H52.8567C53.0007 0.191986 53.0727 0.263986 53.0727 0.407986V2.31599C53.0727 2.45199 53.0007 2.51999 52.8567 2.51999H50.0607V9.74399C50.0607 9.88799 49.9887 9.95999 49.8447 9.95999H47.7807Z" fill="currentColor"/><path d="M36.9071 9.95999C36.7711 9.95999 36.7031 9.88799 36.7031 9.74399V0.407986C36.7031 0.263986 36.7711 0.191986 36.9071 0.191986H43.3391C43.4831 0.191986 43.5551 0.263986 43.5551 0.407986V2.12399C43.5551 2.26799 43.4831 2.33999 43.3391 2.33999H39.1631V3.93599H42.8471C42.9911 3.93599 43.0631 4.00399 43.0631 4.13999V5.79599C43.0631 5.93999 42.9911 6.01199 42.8471 6.01199H39.1631V7.81199H43.4951C43.6391 7.81199 43.7111 7.88399 43.7111 8.02799V9.74399C43.7111 9.88799 43.6391 9.95999 43.4951 9.95999H36.9071Z" fill="currentColor"/><path d="M24.0399 9.95999C23.9039 9.95999 23.8359 9.88799 23.8359 9.74399V0.407986C23.8359 0.263986 23.9039 0.191986 24.0399 0.191986H26.1999C26.3199 0.191986 26.3999 0.239986 26.4399 0.335986L29.3799 5.23199L32.2479 0.335986C32.2959 0.239986 32.3759 0.191986 32.4879 0.191986H34.5999C34.7439 0.191986 34.8159 0.263986 34.8159 0.407986V9.74399C34.8159 9.88799 34.7439 9.95999 34.5999 9.95999H32.6439C32.4999 9.95999 32.4279 9.88799 32.4279 9.74399V4.19999L30.1839 7.95599C30.1279 8.05199 30.0479 8.09999 29.9439 8.09999H28.7079C28.5959 8.09999 28.5159 8.05199 28.4679 7.95599L26.2119 4.29599V9.74399C26.2119 9.88799 26.1439 9.95999 26.0079 9.95999H24.0399Z" fill="currentColor"/><path d="M17.1624 10.152C16.4344 10.152 15.7624 10.028 15.1464 9.78C14.5384 9.54 14.0064 9.196 13.5504 8.748C13.0944 8.3 12.7384 7.764 12.4824 7.14C12.2344 6.516 12.1104 5.828 12.1104 5.076C12.1104 4.316 12.2344 3.628 12.4824 3.012C12.7384 2.388 13.0944 1.852 13.5504 1.404C14.0064 0.956 14.5384 0.612 15.1464 0.372C15.7624 0.124 16.4344 0 17.1624 0C17.8904 0 18.5584 0.124 19.1664 0.372C19.7824 0.612 20.3144 0.956 20.7624 1.404C21.2184 1.852 21.5704 2.388 21.8184 3.012C22.0744 3.628 22.2024 4.316 22.2024 5.076C22.2024 5.828 22.0744 6.516 21.8184 7.14C21.5704 7.764 21.2184 8.3 20.7624 8.748C20.3144 9.196 19.7824 9.54 19.1664 9.78C18.5584 10.028 17.8904 10.152 17.1624 10.152ZM14.6784 5.076C14.6784 5.596 14.7824 6.06 14.9904 6.468C15.1984 6.868 15.4904 7.18 15.8664 7.404C16.2424 7.628 16.6744 7.74 17.1624 7.74C17.6584 7.74 18.0904 7.628 18.4584 7.404C18.8264 7.18 19.1144 6.868 19.3224 6.468C19.5304 6.06 19.6344 5.596 19.6344 5.076C19.6344 4.548 19.5304 4.084 19.3224 3.684C19.1144 3.284 18.8264 2.972 18.4584 2.748C18.0904 2.524 17.6584 2.412 17.1624 2.412C16.6744 2.412 16.2424 2.524 15.8664 2.748C15.4904 2.972 15.1984 3.284 14.9904 3.684C14.7824 4.084 14.6784 4.548 14.6784 5.076Z" fill="currentColor"/><path d="M7.50286 10.152C6.58286 10.152 5.79486 9.928 5.13886 9.48C4.48286 9.032 4.01886 8.388 3.74686 7.548C3.73886 7.524 3.73486 7.496 3.73486 7.464C3.73486 7.368 3.78686 7.308 3.89086 7.284L5.73886 6.828C5.75486 6.828 5.76686 6.828 5.77486 6.828C5.79086 6.82 5.80286 6.816 5.81086 6.816C5.90686 6.816 5.97086 6.864 6.00286 6.96C6.14686 7.312 6.34686 7.568 6.60286 7.728C6.85886 7.888 7.18286 7.968 7.57486 7.968C7.89486 7.968 8.15486 7.912 8.35486 7.8C8.55486 7.688 8.65486 7.52 8.65486 7.296C8.65486 7.048 8.54686 6.852 8.33086 6.708C8.12286 6.564 7.81886 6.42 7.41886 6.276L6.39886 5.916C5.65486 5.66 5.06286 5.288 4.62286 4.8C4.18286 4.312 3.96286 3.704 3.96286 2.976C3.96286 2.392 4.11886 1.876 4.43086 1.428C4.74286 0.98 5.16286 0.632 5.69086 0.384C6.22686 0.128 6.81886 0 7.46686 0C8.28286 0 8.99886 0.196 9.61486 0.588C10.2389 0.972 10.6869 1.58 10.9589 2.412C10.9669 2.428 10.9709 2.456 10.9709 2.496C10.9709 2.592 10.9189 2.652 10.8149 2.676L8.88286 3.204C8.85886 3.212 8.83086 3.216 8.79886 3.216C8.71886 3.216 8.65486 3.168 8.60686 3.072C8.46286 2.72 8.29086 2.484 8.09086 2.364C7.89886 2.244 7.67886 2.184 7.43086 2.184C7.15886 2.184 6.93486 2.244 6.75886 2.364C6.58286 2.476 6.49486 2.636 6.49486 2.844C6.49486 3.044 6.59486 3.224 6.79486 3.384C7.00286 3.536 7.35486 3.696 7.85086 3.864L8.58286 4.104C9.44686 4.4 10.0909 4.784 10.5149 5.256C10.9469 5.728 11.1629 6.368 11.1629 7.176C11.1629 7.752 11.0069 8.264 10.6949 8.712C10.3909 9.16 9.96286 9.512 9.41086 9.768C8.85886 10.024 8.22286 10.152 7.50286 10.152Z" fill="currentColor"/><path d="M0.204 9.95999C0.0679999 9.95999 0 9.88799 0 9.74399V0.407986C0 0.263986 0.0679999 0.191986 0.204 0.191986H2.268C2.412 0.191986 2.484 0.263986 2.484 0.407986V9.74399C2.484 9.88799 2.412 9.95999 2.268 9.95999H0.204Z" fill="currentColor"/></svg>
+    <span class="header-meta" id="step-label">1 / 3</span>
+  </header>
+
+  <div class="progress-bar" id="progress" role="progressbar" aria-label="진행 상태"></div>
+  <main class="chat-area" id="chat" aria-live="polite"></main>
+
+  <div class="input-row" id="input-row">
+    <input
+      class="text-input"
+      id="txt"
+      placeholder="직접 입력하거나 위 옵션을 선택하세요"
+      aria-label="답변 입력"
+      autocomplete="off"
+    />
+    <button class="send-btn" id="send-btn" onclick="submitText()" aria-label="전송">
+      <i class="ti ti-arrow-up" aria-hidden="true"></i> 전송
+    </button>
+  </div>
+</div>
+
+<script>
+const STEPS = [
+  {
+    key: 'OBJECT',
+    question: '어떤 오브젝트를 만들까요?',
+    sub: '아이콘으로 표현할 사물을 입력해주세요.',
+    chips: ['rocket', 'camera', 'speaker', 'headphones', 'laptop', 'plant', 'chess piece', 'bicycle'],
+    detail_key: 'OBJECT_SHAPE',
+    detail_fn: (obj) => `<strong>${obj}</strong>의 형태 특징을 설명해주세요.<span class="sub">선택사항 — 건너뛰려면 빈칸으로 전송하세요</span>`,
+    detail_placeholder: '예: chunky rectangular body and one large simple circular lens',
+    detail_chips_fn: (obj) => {
+      const map = {
+        rocket:       ['cylindrical body, pointed nose cone, fins at base, small windows'],
+        camera:       ['chunky rectangular body and one large simple circular lens'],
+        speaker:      ['cylindrical tower form, simple mesh grille on front'],
+        headphones:   ['circular ear cups, curved headband, oval cushioned pads'],
+        laptop:       ['thin clamshell body, flat keyboard base, hinge at back'],
+        plant:        ['round pot base, short chunky stem, broad simple leaves'],
+        'chess piece':['rounded bishop top, tapered cylindrical body, flat base'],
+        bicycle:      ['diamond frame, two round wheels, simple handlebar and saddle'],
+      };
+      return map[obj] || ['compact and chunky proportions', 'simplified geometric form'];
+    },
+    avoid_map: {
+      rocket:       'no tiny fins detail, no complex engine nozzle, no many small surface cuts',
+      camera:       'no realistic camera details, no tiny buttons, no many dials, no ports, no labels, no grooves',
+      speaker:      'no tiny grille mesh, no many small buttons, no cable details',
+      headphones:   'no tiny control buttons, no wire details, no complex hinge mechanism',
+      laptop:       'no tiny keyboard keys, no ports, no sticker details, no screen bezel details',
+      plant:        'no many small leaves, no soil texture, no complex root details',
+      'chess piece':'no fine carved details, no chess board markings',
+      bicycle:      'no chain details, no spoke details, no gear mechanism',
+    },
+  },
+  {
+    key: 'COLOR',
+    type: 'color',
+    question: '어떤 컬러 테마를 선택할까요?',
+    sub: '프리셋을 선택하거나, hex 코드를 직접 입력하세요.',
+    presets: [
+      { label: 'ocean blue',      hex: ['#B5D4F4', '#378ADD', '#185FA5'], name: 'ocean blue' },
+      { label: 'coral red',       hex: ['#F5C4B3', '#D85A30', '#993C1D'], name: 'coral red' },
+      { label: 'forest green',    hex: ['#C0DD97', '#639922', '#3B6D11'], name: 'forest green' },
+      { label: 'lavender purple', hex: ['#CECBF6', '#7F77DD', '#534AB7'], name: 'lavender purple' },
+      { label: 'warm amber',      hex: ['#FAC775', '#BA7517', '#854F0B'], name: 'warm amber' },
+      { label: 'dusty rose',      hex: ['#F4C0D1', '#D4537E', '#993556'], name: 'dusty rose pink' },
+      { label: 'mint teal',       hex: ['#9FE1CB', '#1D9E75', '#0F6E56'], name: 'mint teal' },
+      { label: 'slate gray',      hex: ['#D3D1C7', '#888780', '#5F5E5A'], name: 'slate gray' },
+    ],
+  },
+  {
+    key: 'VIEW',
+    question: '어떤 시점(뷰)으로 볼까요?',
+    sub: '아이소메트릭 3D 뷰 방향을 선택하세요.',
+    chips: [
+      'Front-left isometric view, slightly elevated angle',
+      'Front-right isometric view, slightly elevated angle',
+      'Top-down isometric view, looking straight down-left',
+      'Three-quarter front isometric view',
+    ],
+  }
+];
+
+let stepIdx = 0;
+let answers = {};
+let inDetailStep = false;
+let currentDetailKey = null;
+
+const chat = document.getElementById('chat');
+const txt = document.getElementById('txt');
+const progress = document.getElementById('progress');
+const stepLabel = document.getElementById('step-label');
+
+function updateProgress() {
+  const total = STEPS.length;
+  progress.innerHTML = '';
+  for (let i = 0; i < total; i++) {
+    const d = document.createElement('div');
+    d.className = 'progress-dot' + (i < stepIdx ? ' done' : i === stepIdx ? ' current' : '');
+    progress.appendChild(d);
+  }
+  stepLabel.textContent = stepIdx >= total ? '완료 ✓' : `${stepIdx + 1} / ${total}`;
+}
+
+function addMsg(role, html, chips, onChip) {
+  const msg = document.createElement('div');
+  msg.className = `msg ${role}`;
+
+  const lbl = document.createElement('div');
+  lbl.className = 'msg-label';
+  lbl.textContent = role === 'bot' ? '그래픽 도우미' : 'you';
+
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble';
+  bubble.innerHTML = html;
+
+  msg.appendChild(lbl);
+  msg.appendChild(bubble);
+
+  if (chips && chips.length) {
+    const chipWrap = document.createElement('div');
+    chipWrap.className = 'chips';
+    chips.forEach(c => {
+      const btn = document.createElement('button');
+      btn.className = 'chip';
+      btn.textContent = c;
+      btn.onclick = () => {
+        document.querySelectorAll('.chip').forEach(x => x.classList.remove('selected'));
+        btn.classList.add('selected');
+        txt.value = c;
+        if (onChip) onChip(c);
+        setTimeout(() => handleInput(c), 150);
+      };
+      chipWrap.appendChild(btn);
+    });
+    msg.appendChild(chipWrap);
+  }
+
+  chat.appendChild(msg);
+  chat.scrollTop = chat.scrollHeight;
+  return msg;
+}
+
+let colorHexInputs = { light: '', main: '', dark: '', name: '' };
+
+function hexToName(hex) {
+  const h = hex.replace('#','').toLowerCase();
+  const r = parseInt(h.slice(0,2),16), g = parseInt(h.slice(2,4),16), b = parseInt(h.slice(4,6),16);
+  const max = Math.max(r,g,b), min = Math.min(r,g,b);
+  const l = (max+min)/2/255;
+  const s = max===min ? 0 : (max-min)/(255-Math.abs(2*255*l-255));
+  const h2 = max===min ? 0 : max===r ? ((g-b)/(max-min)+6)%6*60 : max===g ? (b-r)/(max-min)*60+120 : (r-g)/(max-min)*60+240;
+  if (s < 0.12) return l > 0.7 ? 'near-white' : l > 0.4 ? 'medium gray' : 'dark gray';
+  const hues = [[15,'red'],[45,'orange'],[70,'yellow'],[150,'green'],[185,'teal'],[255,'blue'],[285,'purple'],[330,'pink'],[360,'red']];
+  const hname = hues.find(([t]) => h2 <= t)?.[1] || 'red';
+  const lname = l > 0.82 ? 'very light' : l > 0.65 ? 'light' : l > 0.45 ? 'medium' : l > 0.28 ? 'deep' : 'dark';
+  return `${lname} ${hname}`;
+}
+
+function renderColorStep(step) {
+  const msg = document.createElement('div');
+  msg.className = 'msg bot';
+  const lbl = document.createElement('div');
+  lbl.className = 'msg-label';
+  lbl.textContent = '그래픽 도우미';
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble';
+  bubble.innerHTML = `${step.question}<span class="sub">${step.sub}</span>`;
+  msg.appendChild(lbl);
+  msg.appendChild(bubble);
+
+  const presetWrap = document.createElement('div');
+  presetWrap.className = 'chips';
+  presetWrap.style.maxWidth = '100%';
+  step.presets.forEach(p => {
+    const btn = document.createElement('button');
+    btn.className = 'chip';
+    btn.style.display = 'flex';
+    btn.style.alignItems = 'center';
+    btn.style.gap = '6px';
+    const dots = document.createElement('span');
+    dots.style.cssText = 'display:flex;gap:2px;';
+    p.hex.forEach(c => {
+      const d = document.createElement('span');
+      d.style.cssText = `width:8px;height:8px;border-radius:50%;background:${c};display:inline-block;border:0.5px solid rgba(0,0,0,0.1)`;
+      dots.appendChild(d);
+    });
+    btn.appendChild(dots);
+    btn.appendChild(document.createTextNode(p.label));
+    btn.onclick = () => {
+      presetWrap.querySelectorAll('.chip').forEach(x => x.classList.remove('selected'));
+      btn.classList.add('selected');
+      colorHexInputs.name = p.name;
+      ['light','main','dark'].forEach((k,i) => {
+        colorHexInputs[k] = p.hex[i];
+        const inp = document.getElementById('hex-'+k);
+        if (inp) { inp.value = p.hex[i]; inp.style.borderColor = p.hex[i]; updateSwatch(k, p.hex[i]); }
+      });
+    };
+    presetWrap.appendChild(btn);
+  });
+  msg.appendChild(presetWrap);
+
+  const hexUI = document.createElement('div');
+  hexUI.style.cssText = 'margin-top:12px;display:flex;flex-direction:column;gap:8px;max-width:90%';
+
+  const roles = [
+    { id:'light', label:'Top planes', desc:'윗면 — 가장 밝은 톤' },
+    { id:'main',  label:'Main planes', desc:'정면 — 대표 색상' },
+    { id:'dark',  label:'Side planes', desc:'측면 — 가장 어두운 톤' },
+  ];
+
+  roles.forEach(({id, label, desc}) => {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:8px;';
+
+    const swatch = document.createElement('span');
+    swatch.id = 'swatch-'+id;
+    swatch.style.cssText = 'width:22px;height:22px;border-radius:5px;border:0.5px solid var(--border-hover);background:#eee;flex-shrink:0;transition:background 0.2s';
+
+    const inp = document.createElement('input');
+    inp.type = 'text';
+    inp.id = 'hex-'+id;
+    inp.className = 'text-input';
+    inp.style.cssText = 'width:110px;flex:none;font-size:12px;padding:6px 10px;font-family:var(--font-mono);transition:border-color 0.2s;';
+    inp.placeholder = '#RRGGBB';
+    inp.maxLength = 7;
+    inp.value = colorHexInputs[id] || '';
+    if (colorHexInputs[id]) { inp.style.borderColor = colorHexInputs[id]; swatch.style.background = colorHexInputs[id]; }
+
+    inp.addEventListener('input', () => {
+      let v = inp.value.trim();
+      if (!v.startsWith('#')) v = '#'+v;
+      inp.value = v.slice(0,7);
+      colorHexInputs[id] = inp.value;
+      if (/^#[0-9A-Fa-f]{6}$/.test(inp.value)) {
+        updateSwatch(id, inp.value);
+        inp.style.borderColor = inp.value;
+      } else {
+        swatch.style.background = '#eee';
+        inp.style.borderColor = 'var(--border-hover)';
+      }
+    });
+
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') e.preventDefault(); });
+
+    const lbl2 = document.createElement('span');
+    lbl2.style.cssText = 'display:flex;flex-direction:column;gap:1px;';
+    lbl2.innerHTML = `<span style="font-size:11px;color:var(--text-primary);font-weight:500">${label}</span><span style="font-size:10px;color:var(--text-secondary)">${desc}</span>`;
+
+    row.appendChild(swatch);
+    row.appendChild(inp);
+    row.appendChild(lbl2);
+    hexUI.appendChild(row);
+  });
+
+  const confirmBtn = document.createElement('button');
+  confirmBtn.className = 'send-btn';
+  confirmBtn.style.cssText = 'margin-top:4px;align-self:flex-start;padding:8px 16px;font-size:12px;';
+  confirmBtn.innerHTML = '컬러 확정';
+  confirmBtn.onclick = () => {
+    const l = colorHexInputs.light, m = colorHexInputs.main, d = colorHexInputs.dark;
+    if (!/^#[0-9A-Fa-f]{6}$/.test(l) || !/^#[0-9A-Fa-f]{6}$/.test(m) || !/^#[0-9A-Fa-f]{6}$/.test(d)) {
+      confirmBtn.style.background = '#c0392b';
+      confirmBtn.textContent = '⚠ hex 코드를 확인해주세요';
+      setTimeout(() => { confirmBtn.innerHTML = '컬러 확정'; confirmBtn.style.background = ''; }, 1800);
+      return;
+    }
+    const name = colorHexInputs.name || hexToName(m);
+    answers['COLOR'] = name;
+    answers['LIGHT_COLOR'] = `${hexToName(l)} (${l})`;
+    answers['MAIN_COLOR'] = `${hexToName(m)} (${m})`;
+    answers['DARK_COLOR'] = `${hexToName(d)} (${d})`;
+    const summary = `${name} — ${l} / ${m} / ${d}`;
+    addMsg('user', `<span style="display:flex;align-items:center;gap:8px">${[l,m,d].map(c=>`<span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:${c};border:0.5px solid rgba(0,0,0,0.15)"></span>`).join('')}${summary}</span>`);
+    stepIdx++;
+    setTimeout(askStep, 400);
+  };
+  hexUI.appendChild(confirmBtn);
+  msg.appendChild(hexUI);
+
+  document.getElementById('input-row').style.display = 'none';
+  chat.appendChild(msg);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function updateSwatch(id, hex) {
+  const s = document.getElementById('swatch-'+id);
+  if (s) s.style.background = hex;
+}
+
+function askStep() {
+  const step = STEPS[stepIdx];
+  if (!step) { showResult(); return; }
+  updateProgress();
+
+  if (step.type === 'color') {
+    colorHexInputs = { light: '', main: '', dark: '', name: '' };
+    document.getElementById('input-row').style.display = 'none';
+    renderColorStep(step);
+    return;
+  }
+
+  document.getElementById('input-row').style.display = 'flex';
+  txt.placeholder = '직접 입력하거나 위 옵션을 선택하세요';
+  txt.value = '';
+  addMsg('bot', `${step.question}<span class="sub">${step.sub}</span>`, step.chips);
+}
+
+let detailSelectedChips = [];
+
+function askDetailStep(step, value) {
+  inDetailStep = true;
+  currentDetailKey = step.detail_key;
+  detailSelectedChips = [];
+
+  document.getElementById('input-row').style.display = 'none';
+
+  const msg = document.createElement('div');
+  msg.className = 'msg bot';
+
+  const lbl = document.createElement('div');
+  lbl.className = 'msg-label';
+  lbl.textContent = '그래픽 도우미';
+
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble';
+  bubble.innerHTML = step.detail_fn(value);
+
+  msg.appendChild(lbl);
+  msg.appendChild(bubble);
+
+  const chips = step.detail_chips_fn(value);
+  const chipWrap = document.createElement('div');
+  chipWrap.className = 'chips';
+  chipWrap.style.maxWidth = '90%';
+
+  chips.forEach(c => {
+    const btn = document.createElement('button');
+    btn.className = 'chip';
+    btn.textContent = c;
+    btn.onclick = () => {
+      if (btn.classList.contains('selected')) {
+        btn.classList.remove('selected');
+        detailSelectedChips = detailSelectedChips.filter(x => x !== c);
+      } else {
+        btn.classList.add('selected');
+        detailSelectedChips.push(c);
+      }
+    };
+    chipWrap.appendChild(btn);
+  });
+  msg.appendChild(chipWrap);
+
+  const extraWrap = document.createElement('div');
+  extraWrap.style.cssText = 'display:flex;gap:8px;margin-top:10px;max-width:90%';
+
+  const extraInput = document.createElement('input');
+  extraInput.type = 'text';
+  extraInput.className = 'text-input';
+  extraInput.placeholder = step.detail_placeholder || '추가 설명 입력 (선택사항)';
+  extraInput.style.cssText = 'flex:1;font-size:13px;';
+  extraInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); confirmDetail(); } });
+
+  const confirmBtn = document.createElement('button');
+  confirmBtn.className = 'send-btn';
+  confirmBtn.style.cssText = 'padding:8px 14px;font-size:12px;white-space:nowrap;';
+  confirmBtn.innerHTML = '확정';
+  confirmBtn.onclick = confirmDetail;
+
+  function confirmDetail() {
+    const extra = extraInput.value.trim();
+    const parts = [...detailSelectedChips, ...(extra ? [extra] : [])];
+    const combined = parts.length ? parts.join(', ') : '';
+
+    if (combined) addMsg('user', combined);
+    else addMsg('user', '<em style="opacity:0.5">건너뜀</em>');
+
+    answers[currentDetailKey] = combined || `clearly recognizable ${answers['OBJECT']} shape`;
+    const objStep = STEPS.find(s => s.key === 'OBJECT');
+    if (objStep && objStep.avoid_map) {
+      answers['OBJECT_AVOID'] = objStep.avoid_map[answers['OBJECT']] || 'no tiny details, no many small surface cuts';
+    }
+    inDetailStep = false;
+    currentDetailKey = null;
+    detailSelectedChips = [];
+    stepIdx++;
+    document.getElementById('input-row').style.display = 'flex';
+    setTimeout(askStep, 400);
+  }
+
+  extraWrap.appendChild(extraInput);
+  extraWrap.appendChild(confirmBtn);
+  msg.appendChild(extraWrap);
+
+  chat.appendChild(msg);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function submitText() {
+  const val = txt.value.trim();
+  handleInput(val);
+}
+
+txt.addEventListener('keydown', e => { if (e.key === 'Enter') submitText(); });
+
+function handleInput(val) {
+  if (inDetailStep) return; // handled by confirmDetail in askDetailStep UI
+
+  if (!val) return;
+
+  addMsg('user', val);
+  txt.value = '';
+
+  const step = STEPS[stepIdx];
+  answers[step.key] = val;
+
+  if (step.key === 'OBJECT' && step.detail_key) {
+    setTimeout(() => askDetailStep(step, val), 400);
+    return;
+  }
+
+  stepIdx++;
+  setTimeout(askStep, 400);
+}
+
+function buildPrompt() {
+  const obj = answers['OBJECT'] || 'object';
+  const shape = answers['OBJECT_SHAPE'] || `clearly recognizable ${obj} shape`;
+  const avoid = answers['OBJECT_AVOID'] || 'no tiny details, no many small surface cuts';
+  const color = answers['COLOR'] || 'blue';
+  const light = answers['LIGHT_COLOR'] || 'light ' + color;
+  const main  = answers['MAIN_COLOR']  || color;
+  const dark  = answers['DARK_COLOR']  || 'dark ' + color;
+  const view  = answers['VIEW'] || 'Front-left isometric view, slightly elevated angle';
+
+  return `A single ${color} ${obj}, isolated on a pure white background.
+Create it as a simplified geometric isometric 3D icon, not a noisy low-poly mesh.
+The object is built from a small number of large solid panels and clean bevel planes.
+Use only intentional structural planes that match the ${obj}'s form.
+Surfaces should feel smooth-looking but still geometric, divided into a limited number of broad clean planes.
+Each plane must align with the ${obj} structure and fit together precisely like a carefully modeled hard-surface icon.
+Add subtle rounded edges and soft corner radius between planes, so the transitions feel slightly softened rather than razor-sharp.
+Keep the faceted polygon structure clearly visible, but give the edges a gentle softened bevel.
+The ${obj} should be made of broad clean polygon planes, not smooth clay-like surfaces.
+The object should have a bold, clean, and readable silhouette.
+Keep the form simple, iconic, and structurally clear.
+The ${obj} should be clearly recognizable, with ${shape}.
+Use toy-like proportions: chunky, compact, playful, slightly exaggerated, like a collectible toy ${obj}.
+Avoid realistic proportions.
+Keep the details simplified but clearly visible.
+Use medium detail: not ultra-minimal, not realistic.
+Include the key parts of the ${obj}, and keep each part large, clean, and readable.
+Add a few large object-defining details, but keep them simplified, chunky, geometric, and structurally intentional.
+Do not add lots of tiny technical details, but do not reduce the object to an overly abstract shape.
+Avoid random triangular facets.
+Avoid decorative polygon breakup.
+Avoid too many tiny surface cuts.
+Avoid razor-sharp edges and overly hard transitions between planes.
+Avoid overly smooth blob-like shapes.
+Avoid losing the faceted polygon plane structure.
+Use visibly thicker bevels and chamfers throughout the object. Even the thinnest bevels should be broad, substantial, and clearly readable, not hairline-thin. Every bevel must read as a real geometric plane with noticeable width. Prefer chunky, simplified bevels over delicate micro-bevels. Avoid razor-thin edge slivers, narrow rim bevels, and tiny chamfer strips.
+${view}. Centered object only.
+Flat shaded vector-like 3D illustration with a bright overall appearance and low-contrast shading.
+Use a clean bright ${color} palette, not muted or grayish.
+Use 3 tones only:
+${light} on top planes,
+${main} on main planes,
+${dark} on side planes.
+Keep all tones bright, clear, and saturated.
+The side planes should still look clearly ${color}, not shifted to a different hue.
+Avoid muddy, gray, dull, or desaturated colors.
+Avoid dark shadow colors that shift the hue.
+Keep the polygon plane separation visible through clean flat tone changes, but avoid strong dark contrast.
+Use flat shaded planes, not gradients.
+No gray shading, no dark shadow modeling, no soft airbrush shading, no harsh light-dark separation.
+Pure white background only, completely empty and featureless.
+No floor, no wall, no horizon line, no gradient, no backdrop, no surface, no environmental lighting.
+Show only the single ${obj} on a completely plain white background, with nothing else in the scene.
+No shadow of any kind.
+no random triangulation, no dense faceting, no noisy mesh, no excessive polygon count, no tiny facets, no surface pattern, no texture, no photorealism, no glossy surface, no gradients, no soft airbrush shading, no strong shadows, no dramatic lighting, no text, no logo, no background objects, no extra elements, no floor details, no backdrop details, no muddy colors, no gray cast, no dark shadows, no contact shadow, no cast shadow, no ambient shadow, no ground shadow, no drop shadow, no tiny technical details, no thin bevel lines, no micro-bevels, no razor-thin chamfers, no tiny edge slivers, no delicate narrow bevel strips, ${avoid}`;
+}
+
+function showResult() {
+  document.getElementById('input-row').style.display = 'none';
+  updateProgress();
+
+  addMsg('bot', '완성됐어요! 아래 프롬프트를 복사해서 사용해보세요.<span class="sub">이 프롬프트는 <strong>ChatGPT</strong>와 <strong>Midjourney</strong>에 최적화되어 있어요.</span>');
+
+  const resultWrap = document.createElement('div');
+  resultWrap.className = 'msg bot';
+
+  const lbl = document.createElement('div');
+  lbl.className = 'msg-label';
+  lbl.textContent = 'generated prompt';
+
+  const box = document.createElement('div');
+  box.className = 'result-box';
+
+  const prompt = buildPrompt();
+
+  const spanLabel = document.createElement('span');
+  spanLabel.className = 'result-label';
+  spanLabel.textContent = 'image generation prompt';
+  box.appendChild(spanLabel);
+
+  const copyBtn = document.createElement('button');
+  copyBtn.className = 'copy-btn';
+  copyBtn.innerHTML = '<i class="ti ti-copy" aria-hidden="true"></i> 복사';
+  copyBtn.onclick = () => {
+    navigator.clipboard.writeText(prompt).then(() => {
+      copyBtn.innerHTML = '<i class="ti ti-check" aria-hidden="true"></i> 복사됨!';
+      setTimeout(() => { copyBtn.innerHTML = '<i class="ti ti-copy" aria-hidden="true"></i> 복사'; }, 2000);
+    });
+  };
+  box.appendChild(copyBtn);
+
+  const content = document.createElement('div');
+  content.style.marginTop = '4px';
+  content.innerHTML = prompt
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/(A single|Simplified geometric|Toy-like proportions|Clearly recognizable|Built from|Pure white background|Bright low-contrast)/g,
+      '<span class="highlight">$1</span>');
+  box.appendChild(content);
+
+  const newObjectBtn = document.createElement('button');
+  newObjectBtn.className = 'restart-btn';
+  newObjectBtn.style.cssText = 'background:#e6f7f2;color:#1a9662;border-color:#a3dece;font-weight:500;margin-top:10px;';
+  newObjectBtn.innerHTML = '다른 오브젝트 생성하기';
+  newObjectBtn.onclick = () => {
+    stepIdx = 0; answers = {}; inDetailStep = false; currentDetailKey = null;
+    colorHexInputs = { light: '', main: '', dark: '', name: '' };
+    chat.innerHTML = '';
+    document.getElementById('input-row').style.display = 'flex';
+    updateProgress();
+    setTimeout(() => {
+      addMsg('bot', '다른 오브젝트로 새 프롬프트를 만들어볼게요!<span class="sub">오브젝트를 선택해주세요.</span>');
+      setTimeout(askStep, 400);
+    }, 100);
+  };
+
+  const copyAllBtn = document.createElement('button');
+  copyAllBtn.className = 'restart-btn';
+  copyAllBtn.style.cssText = 'background:#1a9662;color:white;border-color:#1a9662;font-weight:500;margin-top:10px;';
+  copyAllBtn.innerHTML = '프롬프트 전체 복사하기';
+  copyAllBtn.onclick = () => {
+    navigator.clipboard.writeText(prompt).then(() => {
+      copyAllBtn.innerHTML = '복사됐어요!';
+      setTimeout(() => { copyAllBtn.innerHTML = '프롬프트 전체 복사'; }, 2000);
+    });
+  };
+
+  const btnRow = document.createElement('div');
+  btnRow.style.cssText = 'display:flex;gap:8px;margin-top:0;flex-wrap:wrap;';
+  btnRow.appendChild(copyAllBtn);
+  btnRow.appendChild(newObjectBtn);
+
+  resultWrap.appendChild(lbl);
+  resultWrap.appendChild(box);
+  resultWrap.appendChild(btnRow);
+  chat.appendChild(resultWrap);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function intro() {
+  addMsg('bot', '안녕하세요! CHZZK 아이소메트릭 프롬프트를 만들어드릴게요.<span class="sub">몇 가지 질문에 답해주시면 완성 프롬프트를 생성해드립니다.</span>');
+  setTimeout(askStep, 700);
+}
+
+updateProgress();
+intro();
+</script>
+</body>
+</html>
